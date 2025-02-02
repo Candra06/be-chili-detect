@@ -228,4 +228,14 @@ class GejalaController extends Controller
             ->rawColumns(["action"])
             ->make(true);
     }
+
+    public function listGejala() {
+        try {
+            $list = Gejala::where('status', 'Show')->get();
+            $data = ['status'=>true,'data'=>$list];
+            return response()->json($data, 200);
+        } catch (\Throwable $th) {
+            return response()->json(["error" => $th->getMessage()], 500);
+        }
+    }
 }

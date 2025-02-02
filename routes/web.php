@@ -20,9 +20,12 @@ use Carbon\Carbon;
 
 Route::get('/', [AuthController::class,'login']);
 Route::post('/login',[AuthController::class,'submitLogin']);
-
-Route::post('execute-ann', [HasilController::class,'executeModel']);
-Route::post('validate-diagnose', [HasilController::class,'validateDiagnose']);
+Route::group(["prefix" => "api",], function () {
+    Route::get('/list-gejala', [GejalaController::class, 'listGejala']);
+    Route::get('/list-penyakit', [PenyakitController::class, 'listPenyakit']);
+    Route::post('execute-ann', [HasilController::class,'executeModel']);
+    Route::post('validate-diagnose', [HasilController::class,'validateDiagnose']);
+});
 Route::group(["prefix" => "/", "middleware" => ["auth"]], function () {
     Route::get('/dashboard', [AuthController::class,'dashboard']);
     Route::get('/logout', [AuthController::class,'logout']);
