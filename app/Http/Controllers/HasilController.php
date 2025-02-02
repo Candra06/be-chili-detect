@@ -86,8 +86,13 @@ class HasilController extends Controller
         $command = "echo " . escapeshellarg($inputFromRequest) . " | python3 " . base_path('main.py');
         // return $command;
         $output = shell_exec($command);
+        if ($output === null) {
+            return response()->json(['error' => 'Failed to execute Python script.'], 500);
+        }
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json(['error' => 'Invalid response from Python script.', 'raw_output' => $output], 500);
+        }
         $result = json_decode($output, true);
-
         // return response()->json($result);
 
         // $process = proc_open($command, $descriptorSpec, $pipes);
