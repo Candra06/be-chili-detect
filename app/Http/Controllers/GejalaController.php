@@ -232,10 +232,10 @@ class GejalaController extends Controller
     public function listGejala() {
         try {
             $list = Gejala::where('status', 'Show')->get();
-            $data = ['status'=>true,'data'=>$list];
+            $data = ['code'=>"200",'status'=>true,'data'=>$list];
             return response()->json($data, 200);
         } catch (\Throwable $th) {
-            return response()->json(["error" => $th->getMessage()], 500);
+            return response()->json(['code'=>"500","error" => $th->getMessage()], 500);
         }
     }
 }
