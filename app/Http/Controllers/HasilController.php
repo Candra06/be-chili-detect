@@ -71,6 +71,7 @@ class HasilController extends Controller
         $prepareInput = [];
         // return $prepareInput;
         $inputData = $request->input('numbers');
+        $inputFromRequest = json_encode(["numbers" => $request->input('numbers')]);
 
         // Encode input ke JSON
         $jsonInput = json_encode($inputData);
@@ -82,61 +83,67 @@ class HasilController extends Controller
             1 => ["pipe", "w"], // stdout
             2 => ["pipe", "w"]  // stderr
         ];
+        $command = "echo " . escapeshellarg($inputFromRequest) . " | python3 " . base_path('main.py');
+        // return $command;
+        $output = shell_exec($command);
+        $result = json_decode($output, true);
 
-        $process = proc_open($command, $descriptorSpec, $pipes);
+        // return response()->json($result);
 
-        if (is_resource($process)) {
-            fwrite($pipes[0], $jsonInput);
-            fclose($pipes[0]);
-            $output = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
-            $error = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
-            proc_close($process);
-            if ($error) {
-                return response()->json(["error" => $error], 500);
-            }
-            $ress = json_decode($output, true);
-            $inputCsv = implode(",",$inputData).','.$ress['result'];
-            array_push($inputData, $ress['result']);
-            $addDataSet = Helpers::appendToCsv($inputData);
-            if ($addDataSet) {
-                $getDesease = Penyakit::where('kode_penyakit', $ress['result'])->first();
+        // $process = proc_open($command, $descriptorSpec, $pipes);
 
-                $inputResult = [
-                    'is_valid' => $request->is_valid,
-                    'created_by' => $request->created_by,
-                    'keterangan' => $request->keterangan,
-                    'penyakit_id_result' => $getDesease->id,
-                    'penyakit_id_recommended' => $getDesease->id,
+        // fwrite($pipes[0], $jsonInput);
+        // fclose($pipes[0]);
+        // $output = stream_get_contents($pipes[1]);
+        // fclose($pipes[1]);
+        // $error = stream_get_contents($pipes[2]);
+        // fclose($pipes[2]);
+        // proc_close($process);
+        // if ($error) {
+        //     return response()->json(["error" => $error], 500);
+        // }
+        $ress = json_decode($output, true);
+        $inputCsv = implode(",",$inputData).','.$ress['result'];
+        array_push($inputData, $ress['result']);
+        $addDataSet = Helpers::appendToCsv($inputData);
+        if ($addDataSet) {
+            $getDesease = Penyakit::where('kode_penyakit', $ress['result'])->first();
+
+            $inputResult = [
+                'is_valid' => $request->is_valid,
+                'created_by' => $request->created_by,
+                'keterangan' => $request->keterangan,
+                'penyakit_id_result' => $getDesease->id,
+                'penyakit_id_recommended' => $getDesease->id,
+            ];
+            $hasil = Hasil::create($inputResult);
+
+            $prepareInput = [];
+            foreach ($request->input as $val) {
+                $tmp = [
+                    'hasil_id'=>$hasil->id,
+                    'gejala_id'=>$val['id'],
+                    'densitas'=>$val['densitas']
                 ];
-                $hasil = Hasil::create($inputResult);
-
-                $prepareInput = [];
-                foreach ($request->input as $val) {
-                    $tmp = [
-                        'hasil_id'=>$hasil->id,
-                        'gejala_id'=>$val['id'],
-                        'densitas'=>$val['densitas']
-                    ];
-                    HasilDetail::create($tmp);
-                    array_push($prepareInput, $val['densitas']);
-                }
-                $result = [];
-                foreach ($getDesease as $key => $value) {
-                    $result[$key] = $value;
-                }
-                $result['accurasy']= $ress['accuracy'];
-                return response()->json($result);
-            }else{
-                return response()->json(["error" => "Failed to execute Python script"], 500);
+                HasilDetail::create($tmp);
+                array_push($prepareInput, $val['densitas']);
             }
+            $result = [];
+            foreach ($getDesease as $key => $value) {
+                $result[$key] = $value;
+            }
+            $result['accurasy']= $ress['accuracy'];
+            return response()->json($result);
+        }else{
+            return response()->json(["error" => "Failed to execute Python script"], 500);
         }
+        // if (is_resource($process)) {
+        // }
         return response()->json(["error" => "Failed to execute Python script"], 500);
     }
 
     public function validateDiagnose(Request $request) {
-        
+
         try {
             $inputResult = [
                 'is_valid' => $request->is_valid,
