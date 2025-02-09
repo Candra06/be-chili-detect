@@ -147,7 +147,7 @@ def main():
     # print(f"Akurasi: {accuracy * 100:.2f}%")
 
     # Contoh prediksi
-    sample_input =input_data['numbers']
+    sample_input =input_data
     # sample_input = dataset[4][0]
 
     output = nn.feedforward(sample_input)
