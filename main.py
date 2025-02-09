@@ -113,7 +113,8 @@ def one_hot_encode(label, classes):
 def main():
     input_data = json.loads(sys.stdin.read())
     # Baca dataset
-    dataset = read_dataset('/Users/admin/Documents/Project/Web/Laravel/backend-spk-cabai/master-cabai.csv')
+    dataset = read_dataset('/var/www/spk.warlocdev.my.id/public_html/master-cabai.csv')
+    # dataset = read_dataset('/Users/admin/Documents/Project/Web/Laravel/backend-spk-cabai/master-cabai.csv')
 
     # Dapatkan daftar kelas unik
     classes = list(set(data[1] for data in dataset))
