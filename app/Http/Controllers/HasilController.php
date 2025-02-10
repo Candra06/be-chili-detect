@@ -99,39 +99,41 @@ class HasilController extends Controller
             $ress = json_decode($output, true);
             $inputCsv = implode(",",$inputData).','.$ress['result'];
             array_push($inputData, $ress['result']);
+            $getDesease = Penyakit::where('kode_penyakit', $ress['result'])->first();
+
+            $inputResult = [
+                'is_valid' => $request->is_valid,
+                'created_by' => $request->created_by,
+                'keterangan' => $request->keterangan,
+                'penyakit_id_result' => $getDesease->id,
+                'penyakit_id_recommended' => $getDesease->id,
+            ];
+            $hasil = Hasil::create($inputResult);
+
+            $prepareInput = [];
+            foreach ($request->input as $val) {
+                $tmp = [
+                    'hasil_id'=>$hasil->id,
+                    'gejala_id'=>$val['id'],
+                    'densitas'=>$val['densitas']
+                ];
+                HasilDetail::create($tmp);
+                array_push($prepareInput, $val['densitas']);
+            }
+            $result = [];
+            foreach ($getDesease as $key => $value) {
+                $result[$key] = $value;
+            }
+
+            $result['data']['accuracy']= $ress['accuracy'];
+            $result['data']['data']= $hasil->optResult;
+            $result['data']['data']['result_id']= $hasil->id;
+            $result['code']= '200';
+            array_push($inputData, $hasil->id);
             $addDataSet = Helpers::appendToCsv($inputData);
             if ($addDataSet) {
-                $getDesease = Penyakit::where('kode_penyakit', $ress['result'])->first();
-
-                $inputResult = [
-                    'is_valid' => $request->is_valid,
-                    'created_by' => $request->created_by,
-                    'keterangan' => $request->keterangan,
-                    'penyakit_id_result' => $getDesease->id,
-                    'penyakit_id_recommended' => $getDesease->id,
-                ];
-                $hasil = Hasil::create($inputResult);
-
-                $prepareInput = [];
-                foreach ($request->input as $val) {
-                    $tmp = [
-                        'hasil_id'=>$hasil->id,
-                        'gejala_id'=>$val['id'],
-                        'densitas'=>$val['densitas']
-                    ];
-                    HasilDetail::create($tmp);
-                    array_push($prepareInput, $val['densitas']);
-                }
-                $result = [];
-                foreach ($getDesease as $key => $value) {
-                    $result[$key] = $value;
-                }
-
-                $result['data']['accuracy']= $ress['accuracy'];
-                $result['data']['data']= $hasil->optResult;
-                $result['data']['data']['result_id']= $hasil->id;
-                $result['code']= '200';
                 return response()->json($result, 200);
+
             }else{
                 return response()->json(["error" => "Failed to execute Python script"], 500);
             }
