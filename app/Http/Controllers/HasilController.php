@@ -135,6 +135,7 @@ class HasilController extends Controller
             }
             // return $hasil->optResult->kode_penyakit;
             array_push($prepareCsv, $hasil->optResult->kode_penyakit);
+            array_push($prepareCsv, 'Pakar');
             foreach ($dens as $g) {
                 HasilDetail::create($g);
             }
