@@ -13,7 +13,7 @@ class HasilDetail extends Model
     // protected $fillable =['hasil_id','gejala_id','densitas'];
 
     public function detail() {
-        return $this->belongsTo(Rules::class, 'hasil_id', 'id');
+        return $this->belongsTo(Hasil::class, 'hasil_id', 'id');
     }
 
     public function gejala() {

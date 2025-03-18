@@ -18,8 +18,13 @@ use Carbon\Carbon;
 |
 */
 
-Route::get('/', [AuthController::class,'login']);
+Route::get('/', [HasilController::class,'index']);
+Route::get('/list-result', [HasilController::class,'list'])->name('list');
+Route::get('/list-detail/{hasil}', [HasilController::class,'show'])->name('list-detail');
+// Route::get('/', [AuthController::class,'login']);
 Route::post('/login',[AuthController::class,'submitLogin']);
+Route::get('/diagnosa',[HasilController::class,'index']);
+Route::post('/save-diagnosa',[HasilController::class,'store']);
 Route::group(["prefix" => "api",], function () {
     Route::get('/list-gejala', [GejalaController::class, 'listGejala']);
     Route::get('/list-penyakit', [PenyakitController::class, 'listPenyakit']);

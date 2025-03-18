@@ -5,18 +5,73 @@ namespace App\Http\Controllers;
 use App\Models\Hasil;
 use App\Models\HasilDetail;
 use App\Models\Penyakit;
+use App\Models\Gejala;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Helper\Helpers;
+use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\DB;
 
 class HasilController extends Controller
 {
+    public $dataPage = [
+        "route" => [
+            'index' => 'list',
+        //     'add' => 'rules.create',
+            'show' => 'list-detail',
+        //     'update' => 'rules.update',
+        //     'edit' => 'rules.edit',
+        //     'store' => 'rules.store',
+            'detail' => 'rules.detail',
+        //     'delete' => 'rules.destroy',
+        ],
+        "tableHead" => ["No", "kode","Penyakit", "Aksi"],
+        "tableColumns" => ["DT_RowIndex", "kode","penyakit", "action"],
+    ];
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        //
+        $penyakit = Penyakit::where('status', 'Show')->get();
+        $gejala = Gejala::where('status', 'Show')->get();
+        $data = (object) [
+            'title' => 'Tambah Data Referensi',
+            'subtitle' => 'Data Referensi',
+            'base_title' => 'Tambah Data',
+            'type' => 'add',
+            'action' => url('save-diagnosa'),
+            'data' =>(object) [
+                'penyakit' => $penyakit,
+                'gejala' => $gejala,
+            ],
+        ];
+        // return $data;
+        return view('pages.diagnosa.form', compact('data'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function list()
+    {
+        $dataPage = $this->dataPage;
+        $list= Hasil::with('optResult')->where('created_by','Pakar')->get();
+        // return $list;
+        $data = (object)[
+            'title' => 'Data Referensi',
+            "createBtn" => true,
+            'tableHead' => $dataPage['tableHead'],
+            'tableColumns' => Helpers::tableColumns($dataPage['tableColumns']),
+
+            "routeData" => route($dataPage['route']['index']),
+            'data' => $list,
+        ];
+        // return $list;
+        if (request()->ajax()) {
+            return $this->ajax($list);
+        }
+        return view('pages.diagnosa.index', compact('data'));
     }
 
     /**
@@ -32,7 +87,69 @@ class HasilController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'penyakit_id' => 'required',
+        ]);
+        $gejalaId = [];
+        foreach ($request->request as $key => $value) {
+            if (str_starts_with($key, 'gejala')) {
+                array_push($gejalaId,str_replace('gejala-','',$key));
+            }
+        }
+        // return $request;
+        try {
+            if (count($gejalaId) < 1) {
+                return back()->with('warning', 'Harap pilih minimal 1 gejala!');
+            }
+            DB::beginTransaction();
+            $inputResult = [
+                'is_valid' => 'Y',
+                'created_by' => 'Pakar',
+                'keterangan' => '-',
+                'penyakit_id_result' => $request->penyakit_id,
+                'penyakit_id_recommended' => $request->penyakit_id,
+            ];
+
+            $hasil = Hasil::create($inputResult);
+
+
+            $dens = [];
+            $prepareCsv = [];
+            $gejala = Gejala::where('status', 'Show')->get();
+            foreach ($gejala as $value) {
+                if (in_array($value->id, $gejalaId)) {
+                    array_push($dens,[
+                        'hasil_id' => $hasil->id,
+                        'gejala_id' => $value->id,
+                        'densitas' => $value->densitas,
+                    ]);
+                    array_push($prepareCsv, $value->densitas);
+                } else {
+                    array_push($dens,[
+                        'hasil_id' => $hasil->id,
+                        'gejala_id' => $value->id,
+                        'densitas' => 0,
+                    ]);
+                    array_push($prepareCsv, 0);
+                }
+            }
+            // return $hasil->optResult->kode_penyakit;
+            array_push($prepareCsv, $hasil->optResult->kode_penyakit);
+            foreach ($dens as $g) {
+                HasilDetail::create($g);
+            }
+            $addDataSet = Helpers::appendToCsv($prepareCsv);
+            if (!$addDataSet) {
+                return back()->with('error', 'Gagal menambah data csv');
+            }
+
+            DB::commit();
+            return redirect('/')->with('success', 'Berhasil menambah data');
+        } catch (\Throwable $th) {
+            DB::rollback();
+            return back()->with('error', $th->getError());
+            throw $th;
+        }
     }
 
     /**
@@ -40,7 +157,18 @@ class HasilController extends Controller
      */
     public function show(Hasil $hasil)
     {
-        //
+        $hasilDetail = HasilDetail::with('gejala')->where('hasil_id', $hasil->id)->get();
+        // return $hasilDetail;
+        $detail=$hasil->opt;
+        // return $detail['0'];
+        $gejala = [];
+        foreach ($hasilDetail as $key => $item) {
+            $gejala[] = $item->gejala;
+        }
+        $detail['detail']=$hasilDetail;
+        $detail['gejala']=$gejala;
+
+        return response()->json(['data'=>$detail]);
     }
 
     /**
@@ -156,5 +284,33 @@ class HasilController extends Controller
         } catch (\Throwable $th) {
             return response()->json(["error" => $th->getMessage(),'code'=>500], 500);
         }
+    }
+
+
+    function ajax($list)
+    {
+        return DataTables::of($list)
+            ->addIndexColumn()
+            ->smart(false)
+            ->addColumn('kode', function ($row) {
+                return $row->optResult->kode_penyakit;
+            })
+            ->addColumn('penyakit', function ($row) {
+                return $row->optResult->penyakit;
+            })
+            ->addColumn("action", function ($row) {
+
+                // $editRoute = route($this->dataPage['route']['edit'], $row->id);
+                $detailRoute = route($this->dataPage['route']['show'], $row->id);
+                // $deleteRoute = route($this->dataPage['route']['delete'], $row->id);
+                $message = 'Apakah Anda yakin untuk menghapus rule ' . $row->optResult->penyakit . ' ?';
+                $actionBtn='<button class="btn-sm modal-effect btn" data-bs-effect="effect-scale" data-bs-toggle="modal" style="font-size: 24px;" onclick="viewDetail(\'' . $detailRoute . '\')" href="#modal-detail"><span class="fe fe-eye"><span></button>';
+                // $actionBtn .= '<a href="'. $detailRoute .'"><button class="btn-sm me-2 btn" style="font-size:24px;"><span class="fe fe-edit"></span></button></a>';
+                // $actionBtn  .= '<button class="btn-sm mr-2 modal-effect btn" data-bs-effect="effect-scale" data-bs-toggle="modal" style="font-size:24px;" onclick="deleteData(\'' . $deleteRoute . '\', \'' . $message . '\')" href="#modal-delete"><span class="fe fe-trash"></span></button>' ;
+
+                return $actionBtn;
+            })
+            ->rawColumns(["action"])
+            ->make(true);
     }
 }
