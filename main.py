@@ -65,13 +65,13 @@ class NeuralNetwork:
             outputs[i] = sigmoid(sum + self.bias_o[i])
 
         # Backpropagation
-        # Calculate output layer errors
+        # Menghitung nilai error pada output layer
         output_errors = [0 for _ in range(self.output_nodes)]
         for i in range(self.output_nodes):
             error = targets[i] - outputs[i]
             output_errors[i] = error * sigmoid_derivative(outputs[i])
 
-        # Calculate hidden layer errors
+        # Menghitung nilai error pada hidden layer
         hidden_errors = [0 for _ in range(self.hidden_nodes)]
         for i in range(self.hidden_nodes):
             error = 0
@@ -79,14 +79,14 @@ class NeuralNetwork:
                 error += output_errors[j] * self.weights_ho[j][i]
             hidden_errors[i] = error * sigmoid_derivative(hidden[i])
 
-        # Update weights and biases
-        # Hidden to output
+        # Memperbarui bobot dan bias
+        # Hidden ke output
         for i in range(self.output_nodes):
             for j in range(self.hidden_nodes):
                 self.weights_ho[i][j] += self.learning_rate * output_errors[i] * hidden[j]
             self.bias_o[i] += self.learning_rate * output_errors[i]
 
-        # Input to hidden
+        # Input ke hidden
         for i in range(self.hidden_nodes):
             for j in range(self.input_nodes):
                 self.weights_ih[i][j] += self.learning_rate * hidden_errors[i] * inputs[j]
@@ -113,8 +113,8 @@ def one_hot_encode(label, classes):
 def main():
     input_data = json.loads(sys.stdin.read())
     # Baca dataset
-    dataset = read_dataset('/var/www/spk.warlocdev.my.id/public_html/master-cabai.csv')
-    # dataset = read_dataset('/Users/admin/Documents/Project/Web/Laravel/backend-spk-cabai/master-cabai.csv')
+    # dataset = read_dataset('/var/www/spk.warlocdev.my.id/public_html/master-cabai.csv')
+    dataset = read_dataset('/Users/admin/Documents/Project/Web/Laravel/backend-spk-cabai/master-cabai-dataset.csv')
 
     # Dapatkan daftar kelas unik
     classes = list(set(data[1] for data in dataset))
@@ -126,7 +126,7 @@ def main():
     nn = NeuralNetwork(input_nodes, hidden_nodes, output_nodes)
 
     # Latih model
-    epochs = 1000
+    epochs = 500
     for _ in range(epochs):
         for features, label in dataset:
             targets = one_hot_encode(label, classes)

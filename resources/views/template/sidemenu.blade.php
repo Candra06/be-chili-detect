@@ -36,19 +36,19 @@
             <li class="slide">
                 <a class="side-menu__item" href="{{ url('/penyakit') }}">
                     <span class="side-menu__icon "><i class="fe fe-grid"></i></span>
-                    <span class="side-menu__label">Penyakit</span>
+                    <span class="side-menu__label">Master Penyakit</span>
                 </a>
             </li>
             <li class="slide">
                 <a class="side-menu__item" href="{{ url('/gejala') }}">
                     <span class="side-menu__icon "><i class="fe fe-grid"></i></span>
-                    <span class="side-menu__label">Gejala</span>
+                    <span class="side-menu__label">Master Gejala</span>
                 </a>
             </li>
             <li class="slide">
-                <a class="side-menu__item" href="{{ url('/rules') }}">
+                <a class="side-menu__item" href="{{ url('/history') }}">
                     <span class="side-menu__icon "><i class="fe fe-grid"></i></span>
-                    <span class="side-menu__label">Aturan</span>
+                    <span class="side-menu__label">Riwayat Diagnosa</span>
                 </a>
             </li>
             <li class="slide">

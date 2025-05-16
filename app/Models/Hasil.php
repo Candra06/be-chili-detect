@@ -19,7 +19,7 @@ class Hasil extends Model
         return $this->belongsTo(Penyakit::class, 'penyakit_id_recommended', 'id');
     }
 
-    public function detail() {
-        return $this->hasMany(HasilDetail::class, 'id', 'hasil_id');
+    public function detailGejala() {
+        return $this->hasMany(HasilDetail::class, 'hasil_id', 'id')->where('densitas','!=',0);
     }
 }

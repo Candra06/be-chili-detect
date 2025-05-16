@@ -8,15 +8,95 @@ use App\Models\Penyakit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Helper\Helpers;
+use Yajra\DataTables\Facades\DataTables;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\HistoryExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class HasilController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
+    public $dataPage = [
+
+        "route" => [
+            'index' => 'history.index',
+            'add' => 'history.create',
+            'show' => 'history.show',
+            'detail' => 'history.detail',
+        ],
+        "tableHead" => ["No", "Kode","Penyakit", "Gejala","Keterangan"],
+        "tableColumns" => ["DT_RowIndex", "kode","penyakit", "gejala","keterangan"],
+    ];
     public function index()
     {
-        //
+        $dataPage = $this->dataPage;
+        $list= Hasil::with('optResult','detailGejala','detailGejala.gejala')->get();
+        $data = (object)[
+            'title' => 'Data Riwayat Diagnosa',
+            "createBtn" => false,
+            'tableHead' => $dataPage['tableHead'],
+            'tableColumns' => Helpers::tableColumns($dataPage['tableColumns']),
+            "routeAdd" => route($dataPage['route']['add']),
+            "routeData" => route($dataPage['route']['index']),
+            'data' => $list,
+        ];
+        // return $list;
+        if (request()->ajax()) {
+            return $this->ajax($list);
+        }
+        return view('pages.history.index', compact('data'));
+    }
+
+    function ajax($list)
+    {
+        return DataTables::of($list)
+            ->addIndexColumn()
+            ->smart(false)
+            // ->addColumn("action", function ($row) {
+
+            //     $editRoute = route($this->dataPage['route']['edit'], $row->id);
+            //     $detailRoute = route($this->dataPage['route']['show'], $row->id);
+            //     $deleteRoute = route($this->dataPage['route']['delete'], $row->id);
+            //     $message = 'Apakah Anda yakin untuk menghapus penyakit ' . $row->name . ' ?';
+
+            //     $actionBtn = '<a href="'. $editRoute .'"><button class="btn-sm me-2 btn" style="font-size:24px;"><span class="fe fe-edit"></span></button></a>';
+            //     $actionBtn  .= '<button class="btn-sm mr-2 modal-effect btn" data-bs-effect="effect-scale" data-bs-toggle="modal" style="font-size:24px;" onclick="deleteData(\'' . $deleteRoute . '\', \'' . $message . '\')" href="#modal-delete"><span class="fe fe-trash"></span></button>' ;
+
+            //     return $actionBtn;
+            // })
+            ->addColumn("gejala", function ($row) {
+
+                $details = collect($row->detailGejala)->map(function ($detail) {
+                    return "- " ."(".$detail->gejala->kode_gejala.") " .$detail->gejala->gejala;
+                })->implode("<br>");
+
+                return $details;
+            })
+            ->addColumn("kode", function ($row) {
+                return $row->optResult->kode_penyakit;
+            })
+            ->addColumn("penyakit", function ($row) {
+                return $row->optResult->penyakit;
+            })
+            ->addColumn("keterangan", function ($row) {
+                return $row->keterangan;
+            })
+            ->rawColumns(["gejala","kode","penyakit","keterangan"])
+            ->make(true);
+    }
+
+    public function printPdf(){
+        try {
+            $data= Hasil::with('optResult','detailGejala','detailGejala.gejala')->get();
+            // $pdf = Pdf::loadView('template.history', $data);
+            // return $pdf->download('DataSet.pdf');
+            return Excel::download(new HistoryExport($data), 'hasil-diagnosa.xlsx');
+            return view('template.history', compact('data'));
+        } catch (\Throwable $th) {
+            //throw $th;
+        }
     }
 
     /**
@@ -66,6 +146,8 @@ class HasilController extends Controller
     {
         //
     }
+
+
 
     public function executeModel(Request $request) {
         $prepareInput = [];

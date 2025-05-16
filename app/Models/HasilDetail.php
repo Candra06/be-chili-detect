@@ -10,10 +10,10 @@ class HasilDetail extends Model
     use HasFactory;
     protected $table='hasil_detail';
     protected $fillable =['hasil_id','gejala_id','densitas'];
-    // protected $fillable =['hasil_id','gejala_id','densitas'];
 
-    public function detail() {
-        return $this->belongsTo(Rules::class, 'hasil_id', 'id');
+    public function detailGejala() {
+        return $this->belongsTo(Hasil::class, 'hasil_id', 'id');
+        // return $this->belongsTo(Rules::class, 'hasil_id', 'id');
     }
 
     public function gejala() {

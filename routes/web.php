@@ -26,10 +26,12 @@ Route::group(["prefix" => "api",], function () {
     Route::post('execute-ann', [HasilController::class,'executeModel']);
     Route::post('validate-diagnose', [HasilController::class,'validateDiagnose']);
 });
+Route::get('/print', [HasilController::class,'printPdf']);
 Route::group(["prefix" => "/", "middleware" => ["auth"]], function () {
     Route::get('/dashboard', [AuthController::class,'dashboard']);
     Route::get('/logout', [AuthController::class,'logout']);
     Route::resource('gejala', GejalaController::class);
     Route::resource('penyakit', PenyakitController::class);
     Route::resource('rules', RulesController::class);
+    Route::resource('history', HasilController::class);
 });
