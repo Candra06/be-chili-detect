@@ -1,7 +1,5 @@
 import math
 import random
-import csv
-import sys
 import json
 # Fungsi aktivasi (sigmoid)
 def sigmoid(x):
@@ -25,9 +23,8 @@ class NeuralNetwork:
         # Inisialisasi bias
         self.bias_h = [random.random() for _ in range(hidden_nodes)]
         self.bias_o = [random.random() for _ in range(output_nodes)]
-
         # Learning rate
-        self.learning_rate = 0.2
+        self.learning_rate = 0.5
 
     def feedforward(self, inputs):
         # Hidden layer
@@ -109,35 +106,50 @@ def one_hot_encode(label, classes):
     encoding[classes.index(label)] = 1
     return encoding
 
+def split_dataset(dataset, train_ratio=0.8):
+    random.shuffle(dataset)
+    split_point = int(len(dataset) * train_ratio)
+    return dataset[:split_point], dataset[split_point:]
 # Fungsi utama
 def main():
+    input_data = [0,0,0,0,0.2,0.4,0.3,0.1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     # input_data = json.loads(sys.stdin.read())
-    input_data = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    # Baca dataset
-    # dataset = read_dataset('/var/www/spk.warlocdev.my.id/public_html/master-cabai.csv')
-    dataset = read_dataset('/Users/admin/Documents/Project/Web/Laravel/backend-spk-cabai/master-cabai-dataset.csv')
 
-    # Dapatkan daftar kelas unik
-    classes = list(set(data[1] for data in dataset))
+    # dataset = read_dataset('/var/www/spk.warlocdev.my.id/public_html/master-cabai.csv')
+    dataset = read_dataset('/Users/admin/Documents/Project/Web/Laravel/backend-spk-cabai/dataset-cabai.csv')
+    train_set, test_set = split_dataset(dataset, train_ratio=0.8)
+
+    classes = sorted(list(set(data[1] for data in dataset)))
 
     # Inisialisasi neural network
     input_nodes = len(dataset[0][0])
-    hidden_nodes = 17
+    hidden_nodes = 20
     output_nodes = len(classes)
     nn = NeuralNetwork(input_nodes, hidden_nodes, output_nodes)
 
     # Latih model
-    epochs = 500
-    for _ in range(epochs):
-        for features, label in dataset:
+    max_epochs = 500
+    threshold_error = 0.01
+    for epoch in range(max_epochs):
+        total_error = 0
+        for features, label in train_set:
             targets = one_hot_encode(label, classes)
-            # print(features)
+
+            outputs = nn.feedforward(features)
+            error = sum((targets[i] - outputs[i]) ** 2 for i in range(len(targets))) / len(targets)
+            total_error += error
             nn.train(features, targets)
+
+        # avg_error = total_error / len(train_set)
+
+        # if avg_error < threshold_error:
+        #     print(f"✅ Training stopped at epoch {epoch+1} with average error {avg_error:.2f}")
+        #     break
 
     # Uji model
     correct = 0
-    total = len(dataset)
-    for features, label in dataset:
+    total = len(test_set)
+    for features, label in test_set:
         output = nn.feedforward(features)
         predicted_class = classes[output.index(max(output))]
 
@@ -145,14 +157,11 @@ def main():
             correct += 1
 
     accuracy = correct / total
-    # print(f"correct: {correct}%")
-    # print(f"Akurasi: {accuracy * 100:.2f}%")
-
     # Contoh prediksi
     sample_input =input_data
-    # sample_input = dataset[4][0]
 
     output = nn.feedforward(sample_input)
+
     predicted_class = classes[output.index(max(output))]
     # print(f"Prediksi untuk input {sample_input}: {predicted_class}")
 

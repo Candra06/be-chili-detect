@@ -22,4 +22,8 @@ class Hasil extends Model
     public function detailGejala() {
         return $this->hasMany(HasilDetail::class, 'hasil_id', 'id')->where('densitas','!=',0);
     }
+
+    public function gejala() {
+        return $this->hasMany(HasilDetail::class, 'hasil_id', 'id');
+    }
 }

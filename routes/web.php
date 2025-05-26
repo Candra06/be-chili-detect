@@ -22,6 +22,7 @@ Route::get('/', [AuthController::class,'login']);
 Route::post('/login',[AuthController::class,'submitLogin']);
 Route::group(["prefix" => "api",], function () {
     Route::get('/list-gejala', [GejalaController::class, 'listGejala']);
+    Route::get('/history/{deviceId}', [HasilController::class, 'historyByUser']);
     Route::get('/list-penyakit', [PenyakitController::class, 'listPenyakit']);
     Route::post('execute-ann', [HasilController::class,'executeModel']);
     Route::post('validate-diagnose', [HasilController::class,'validateDiagnose']);

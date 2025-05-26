@@ -26,8 +26,8 @@ class HasilController extends Controller
             'show' => 'history.show',
             'detail' => 'history.detail',
         ],
-        "tableHead" => ["No", "Kode","Penyakit", "Gejala","Keterangan"],
-        "tableColumns" => ["DT_RowIndex", "kode","penyakit", "gejala","keterangan"],
+        "tableHead" => ["No", "Kode","Penyakit", "Gejala"],
+        "tableColumns" => ["DT_RowIndex", "kode","penyakit", "gejala"],
     ];
     public function index()
     {
@@ -80,22 +80,50 @@ class HasilController extends Controller
             ->addColumn("penyakit", function ($row) {
                 return $row->optResult->penyakit;
             })
-            ->addColumn("keterangan", function ($row) {
-                return $row->keterangan;
-            })
+            // ->addColumn("keterangan", function ($row) {
+            //     return $row->keterangan;
+            // })
             ->rawColumns(["gejala","kode","penyakit","keterangan"])
             ->make(true);
     }
 
     public function printPdf(){
         try {
-            $data= Hasil::with('optResult','detailGejala','detailGejala.gejala')->get();
+            $data= Hasil::with('optResult','gejala')->get();
+            // $data= Hasil::with('optResult','detailGejala','detailGejala.gejala')->get();
             // $pdf = Pdf::loadView('template.history', $data);
             // return $pdf->download('DataSet.pdf');
+            $items = [];
+            foreach ($data as $item) {
+                $g = [];
+                foreach ($item->gejala as $gj) {
+                    array_push($g,$gj->densitas);
+                }
+                array_push($g,$item->optResult->kode_penyakit);
+
+                array_push($items,$g);
+            }
+            foreach ($items as $val) {
+                # code...
+                Helpers::appendToCsv($val);
+            }
+            return $items;
             return Excel::download(new HistoryExport($data), 'hasil-diagnosa.xlsx');
             return view('template.history', compact('data'));
         } catch (\Throwable $th) {
-            //throw $th;
+            throw $th;
+        }
+    }
+
+    public function historyByUser($deviceId) {
+        try {
+            $data= Hasil::with('optResult','detailGejala','detailGejala.gejala')
+            ->where('created_by', $deviceId)
+            ->orderBy('id', 'DESC')
+            ->get();
+            return response()->json(['success'=>true,'data'=>$data,'code'=>'200'], 200);
+        } catch (\Throwable $th) {
+            return response()->json(['success'=>false,'message'=>'Gagal mendapatkan history : '.$th->getMessage(),'code'=>'500'], 500);
         }
     }
 
